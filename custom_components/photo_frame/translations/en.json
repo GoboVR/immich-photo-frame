@@ -1,0 +1,270 @@
+{
+  "config": {
+    "flow_title": "{name}",
+    "step": {
+      "user": {
+        "title": "Connect to a photo frame",
+        "description": "Enter the address of the tablet running the Photo Frame app.",
+        "data": {
+          "host": "Host",
+          "port": "Port"
+        },
+        "data_description": {
+          "host": "IP address or hostname of the frame.",
+          "port": "Port of the frame's local API (default 8765)."
+        }
+      },
+      "zeroconf_confirm": {
+        "title": "Discovered photo frame",
+        "description": "Do you want to set up {name} ({host})? A pairing code will be shown on the frame."
+      },
+      "pair": {
+        "title": "Pair with {name}",
+        "description": "A 6-digit code is now displayed on {name}. Enter it below within 2 minutes.",
+        "data": {
+          "code": "Pairing code",
+          "ha_access": "Give the frame access to Home Assistant (for Assist and widgets)"
+        },
+        "data_description": {
+          "code": "The 6-digit code shown on the frame.",
+          "ha_access": "Creates a dedicated non-admin \"Photo Frame\" user with a long-lived access token and sends it to the frame, so you don't have to type a token on the tablet."
+        }
+      },
+      "reauth_confirm": {
+        "title": "Re-pair {name}",
+        "description": "{name} no longer accepts Home Assistant's token. Submit to show a new pairing code on the frame."
+      }
+    },
+    "error": {
+      "cannot_connect": "Failed to connect",
+      "invalid_code": "The pairing code is wrong or has expired.",
+      "unknown": "Unexpected error"
+    },
+    "abort": {
+      "already_configured": "Device is already configured",
+      "cannot_connect": "Failed to connect",
+      "no_id": "The discovered frame did not advertise an id.",
+      "wrong_frame": "The frame that answered is not the one being configured.",
+      "reauth_successful": "Re-authentication was successful"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Frame widgets",
+        "description": "Choose what the frame shows on top of the photos.",
+        "data": {
+          "weather_entity": "Weather entity",
+          "entities": "Quick-control entities",
+          "clock": "Show clock",
+          "weather": "Show weather",
+          "photo_info": "Show photo info (date, location, people)",
+          "controls": "Show quick controls",
+          "ha_url": "Home Assistant URL for the frame (optional)",
+          "now_playing": "Show now playing",
+          "now_playing_entities": "Now playing: other speakers to show"
+        },
+        "data_description": {
+          "weather_entity": "Weather entity used by the weather widget.",
+          "entities": "Lights, switches, scenes and other entities shown as buttons on the frame.",
+          "ha_url": "Only needed if the frame shows \"Disconnected\" from Home Assistant. Use an address the tablet can reach, e.g. http://192.168.1.20:8123. Leave empty to auto-detect.",
+          "now_playing_entities": "When one of these is playing (e.g. YT Music cast to a speaker, Music Assistant players), the frame shows the song with play/pause/skip. Music played on the frame itself is always shown."
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Could not send the settings to the frame.",
+      "not_loaded": "The frame is not loaded. Make sure it is online and try again.",
+      "invalid_url": "Must start with http:// or https://"
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "ha_connected": {
+        "name": "Home Assistant connection"
+      }
+    },
+    "button": {
+      "next_photo": {
+        "name": "Next photo"
+      },
+      "previous_photo": {
+        "name": "Previous photo"
+      },
+      "assist_start": {
+        "name": "Start Assist"
+      },
+      "reload_sources": {
+        "name": "Reload sources"
+      }
+    },
+    "image": {
+      "current_photo": {
+        "name": "Current photo"
+      }
+    },
+    "light": {
+      "screen": {
+        "name": "Screen"
+      }
+    },
+    "number": {
+      "slideshow_interval": {
+        "name": "Slideshow interval"
+      }
+    },
+    "select": {
+      "source": {
+        "name": "Photo source",
+        "state": {
+          "album": "Album",
+          "people": "People",
+          "memories": "Memories",
+          "random": "Random",
+          "mixed": "Mixed"
+        }
+      },
+      "album": {
+        "name": "Album"
+      },
+      "person": {
+        "name": "Person"
+      },
+      "wake_word_model": {
+        "name": "Wake word"
+      }
+    },
+    "sensor": {
+      "wifi_signal": {
+        "name": "Wi-Fi signal"
+      },
+      "assist_state": {
+        "name": "Assist state",
+        "state": {
+          "idle": "Idle",
+          "wake_word": "Waiting for wake word",
+          "listening": "Listening",
+          "processing": "Processing",
+          "responding": "Responding",
+          "speaking": "Speaking",
+          "error": "Error"
+        }
+      },
+      "photo_location": {
+        "name": "Photo location"
+      },
+      "photo_date": {
+        "name": "Photo date"
+      },
+      "uptime": {
+        "name": "App started"
+      }
+    },
+    "switch": {
+      "slideshow": {
+        "name": "Slideshow"
+      },
+      "night_mode": {
+        "name": "Night mode"
+      },
+      "auto_brightness": {
+        "name": "Auto brightness"
+      },
+      "wake_word": {
+        "name": "Wake word detection"
+      }
+    }
+  },
+  "exceptions": {
+    "command_failed": {
+      "message": "The frame could not execute {command}: {error}"
+    },
+    "cannot_connect": {
+      "message": "Could not communicate with the frame: {error}"
+    },
+    "unknown_option": {
+      "message": "Unknown option: {option}"
+    },
+    "no_target": {
+      "message": "Several frames are configured; select a frame (device, entity or config entry)."
+    },
+    "target_not_found": {
+      "message": "No loaded photo frame matches the selected target."
+    }
+  },
+  "selector": {
+    "source": {
+      "options": {
+        "album": "Album",
+        "people": "People",
+        "memories": "Memories",
+        "random": "Random",
+        "mixed": "Mixed"
+      }
+    }
+  },
+  "services": {
+    "show_message": {
+      "name": "Show message",
+      "description": "Shows a message toast on the frame.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Frame",
+          "description": "The frame to show the message on (alternative to a target)."
+        },
+        "message": {
+          "name": "Message",
+          "description": "Text to show."
+        },
+        "title": {
+          "name": "Title",
+          "description": "Optional title above the message."
+        },
+        "duration": {
+          "name": "Duration",
+          "description": "How long to show the message, in seconds (default 10)."
+        },
+        "icon": {
+          "name": "Icon",
+          "description": "Optional Material Design icon, e.g. mdi:bell."
+        }
+      }
+    },
+    "show_asset": {
+      "name": "Show photo",
+      "description": "Jumps the slideshow to a specific Immich asset.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Frame",
+          "description": "The frame to control (alternative to a target)."
+        },
+        "asset_id": {
+          "name": "Asset ID",
+          "description": "Immich asset ID to show."
+        }
+      }
+    },
+    "set_source": {
+      "name": "Set photo source",
+      "description": "Changes where the slideshow takes photos from.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Frame",
+          "description": "The frame to control (alternative to a target)."
+        },
+        "source": {
+          "name": "Source",
+          "description": "Photo source."
+        },
+        "album_ids": {
+          "name": "Album IDs",
+          "description": "Immich album IDs (for the album source)."
+        },
+        "person_ids": {
+          "name": "Person IDs",
+          "description": "Immich person IDs (for the people source)."
+        }
+      }
+    }
+  }
+}

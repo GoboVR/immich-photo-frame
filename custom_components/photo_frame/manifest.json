@@ -1,0 +1,12 @@
+{
+  "domain": "photo_frame",
+  "name": "Photo Frame",
+  "codeowners": [],
+  "config_flow": true,
+  "dependencies": ["http", "media_source"],
+  "integration_type": "device",
+  "iot_class": "local_push",
+  "requirements": [],
+  "version": "0.1.0",
+  "zeroconf": ["_photoframe._tcp.local."]
+}

@@ -1,0 +1,90 @@
+show_message:
+  target:
+    device:
+      integration: photo_frame
+    entity:
+      integration: photo_frame
+  fields:
+    config_entry_id:
+      required: false
+      selector:
+        config_entry:
+          integration: photo_frame
+    message:
+      required: true
+      example: "Dinner is ready!"
+      selector:
+        text:
+          multiline: true
+    title:
+      required: false
+      example: "Kitchen"
+      selector:
+        text:
+    duration:
+      required: false
+      default: 10
+      selector:
+        number:
+          min: 1
+          max: 3600
+          unit_of_measurement: s
+          mode: box
+    icon:
+      required: false
+      example: "mdi:silverware-fork-knife"
+      selector:
+        icon:
+
+show_asset:
+  target:
+    device:
+      integration: photo_frame
+    entity:
+      integration: photo_frame
+  fields:
+    config_entry_id:
+      required: false
+      selector:
+        config_entry:
+          integration: photo_frame
+    asset_id:
+      required: true
+      example: "3f2a9c1e-0000-0000-0000-000000000000"
+      selector:
+        text:
+
+set_source:
+  target:
+    device:
+      integration: photo_frame
+    entity:
+      integration: photo_frame
+  fields:
+    config_entry_id:
+      required: false
+      selector:
+        config_entry:
+          integration: photo_frame
+    source:
+      required: true
+      default: mixed
+      selector:
+        select:
+          translation_key: source
+          options:
+            - album
+            - people
+            - memories
+            - random
+            - mixed
+    album_ids:
+      required: false
+      selector:
+        text:
+          multiple: true
+    person_ids:
+      required: false
+      selector:
+        text:
+          multiple: true
