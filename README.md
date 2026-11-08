@@ -53,8 +53,10 @@ tests/                       fake_frame.py, fake_immich.py, HA integration tests
 3. Pick a source. "Everything" mixes memories, your selected albums, selected people and random photos.
 
 ### 3. Home Assistant
-1. Copy `custom_components/photo_frame` to `<config>/custom_components/` (or add this repo to HACS
-   as a custom repository) and restart HA.
+1. Install the integration, then restart HA:
+   - **HACS:** HACS → ⋮ → Custom repositories → add `https://github.com/GoboVR/immich-photo-frame`
+     (type: Integration) → download **Photo Frame**.
+   - **Manually:** copy `custom_components/photo_frame` to `<config>/custom_components/`.
 2. HA should show **Discovered: Photo Frame**. Otherwise: Settings → Devices & services →
    Add integration → Photo Frame → enter the tablet's IP (shown in frame settings), port 8765.
 3. Enter the 6-digit code shown on the frame. Leave "Give the frame access to Home Assistant" on.
@@ -115,3 +117,8 @@ The wake word models in `app/src/main/assets/wakeword/` come from
 "hey jarvis", "alexa", "hey mycroft"; pre-trained models licensed **CC BY-NC-SA 4.0**, i.e.
 non-commercial use) and the
 [Home Assistant wake words collection](https://github.com/fwartner/home-assistant-wakewords-collection) ("ok nabu").
+
+## License
+
+The code in this repository is released under the [MIT License](LICENSE). The bundled wake word
+models keep their own licenses (see above).
