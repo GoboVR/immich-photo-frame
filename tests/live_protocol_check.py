@@ -21,6 +21,18 @@ sys.modules["frame_api"] = api
 spec.loader.exec_module(api)
 
 
+def code_from_screen() -> str:
+    """Read the 6-digit code shown on the frame via the accessibility tree (release builds)."""
+    import re, time
+    for _ in range(10):
+        xml = subprocess.run(["adb", "exec-out", "uiautomator", "dump", "/dev/tty"], capture_output=True, text=True).stdout
+        m = re.search(r'text="(\d{3})\s+(\d{3})"', xml)
+        if m:
+            return m.group(1) + m.group(2)
+        time.sleep(1)
+    raise SystemExit("pairing code not visible on screen")
+
+
 def code_from_logcat() -> str:
     out = subprocess.run(["adb", "logcat", "-d", "-s", "FrameServer:D"], capture_output=True, text=True).stdout
     codes = [l.rsplit(":", 1)[1].strip() for l in out.splitlines() if "pairing code:" in l]
@@ -52,7 +64,7 @@ async def main(a):
             check("wrong code rejected", False)
         except api.FrameInvalidCodeError:
             check("wrong code rejected", True)
-        code = a.code or code_from_logcat()
+        code = a.code or (code_from_screen() if a.screen else code_from_logcat())
         res = await c.pair_finish(code, "live-check")
         check("pair ok", len(res.get("token", "")) == 64)
         c.token = res["token"]
@@ -104,4 +116,5 @@ if __name__ == "__main__":
     ap.add_argument("--port", type=int, default=8765)
     ap.add_argument("--code")
     ap.add_argument("--adb", action="store_true")
+    ap.add_argument("--screen", action="store_true", help="read the pairing code from the screen (release builds)")
     sys.exit(asyncio.run(main(ap.parse_args())))

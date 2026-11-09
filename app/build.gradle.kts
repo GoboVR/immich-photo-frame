@@ -1,3 +1,14 @@
+import java.util.Properties
+
+// Release signing: local.properties may point at a properties file (kept outside the repo)
+// with storeFile/storePassword/keyAlias/keyPassword. Without it, release builds use the
+// debug key so anyone can build.
+val releaseSigning: Properties? = run {
+    val local = Properties().apply { rootProject.file("local.properties").takeIf { it.exists() }?.inputStream()?.use(::load) }
+    local.getProperty("release.keystore.properties")?.let(::file)?.takeIf { it.exists() }
+        ?.let { f -> Properties().apply { f.inputStream().use(::load) } }
+}
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -15,13 +26,32 @@ android {
         targetSdk = 35
         versionCode = 1
         versionName = "0.1.0"
-        ndk { abiFilters += listOf("arm64-v8a", "armeabi-v7a", "x86_64") }
     }
 
+    signingConfigs {
+        if (releaseSigning != null) create("release") {
+            storeFile = file(releaseSigning.getProperty("storeFile"))
+            storePassword = releaseSigning.getProperty("storePassword")
+            keyAlias = releaseSigning.getProperty("keyAlias")
+            keyPassword = releaseSigning.getProperty("keyPassword")
+        }
+    }
+    // One APK per CPU type keeps downloads small (~40 MB instead of ~110 MB).
+    splits {
+        abi {
+            isEnable = true
+            reset()
+            include("arm64-v8a", "armeabi-v7a", "x86_64")
+            isUniversalApk = false
+        }
+    }
     buildTypes {
         release {
-            isMinifyEnabled = false
-            signingConfig = signingConfigs.getByName("debug")
+            // R8 shrinks the APK from ~75 MB to a fraction (unused icons/library code).
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            signingConfig = signingConfigs.findByName("release") ?: signingConfigs.getByName("debug")
         }
     }
     compileOptions {
