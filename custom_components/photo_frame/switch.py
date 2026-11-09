@@ -47,6 +47,12 @@ SWITCHES: tuple[PhotoFrameSwitchDescription, ...] = (
         command_fn=lambda on, s: ("set_auto_brightness", {"enabled": on}),
     ),
     PhotoFrameSwitchDescription(
+        key="camera",
+        translation_key="camera",
+        value_fn=lambda s: get_path(s, "camera", "enabled"),
+        command_fn=lambda on, s: ("set_camera", {"enabled": on}),
+    ),
+    PhotoFrameSwitchDescription(
         key="wake_word",
         translation_key="wake_word",
         entity_category=EntityCategory.CONFIG,
@@ -62,7 +68,13 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up switches."""
-    async_add_entities(PhotoFrameSwitch(entry, desc) for desc in SWITCHES)
+    has_camera = get_path(entry.runtime_data.coordinator.data, "camera") is not None
+    async_add_entities(
+        PhotoFrameSwitch(entry, desc)
+        for desc in SWITCHES
+        # Older app versions don't have a camera: don't add a switch that can't work.
+        if desc.key != "camera" or has_camera
+    )
 
 
 class PhotoFrameSwitch(PhotoFrameEntity, SwitchEntity):

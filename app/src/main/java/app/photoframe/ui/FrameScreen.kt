@@ -31,6 +31,10 @@ import androidx.compose.material.icons.rounded.Mic
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.VolumeOff
 import androidx.compose.material.icons.rounded.VolumeUp
+import androidx.compose.material.icons.rounded.Videocam
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
@@ -121,6 +125,9 @@ private fun FrameScreen(g: AppGraph, onOpenSettings: () -> Unit) {
     val entities by g.ha.entities.collectAsState()
     val haStatus by g.ha.status.collectAsState()
     val mediaState by g.media.state.collectAsState()
+    val cameraViewers by g.camera.viewers.collectAsState()
+    // Keep top-of-screen messages clear of the camera indicator.
+    val topPad = if (cameraViewers > 0) 60.dp else 40.dp
     // Videos/images are shown full screen instead of in the now-playing card.
     val nowPlaying = rememberNowPlaying(mediaState.takeUnless { it.visual } ?: mediaState.copy(url = null), entities, cfg.nowPlayingEntities)
     val isVideoSlide = slide?.asset?.isVideo == true
@@ -254,7 +261,7 @@ private fun FrameScreen(g: AppGraph, onOpenSettings: () -> Unit) {
         }
 
         // ---------------- "Tap for sound" hint at the start of each video
-        AnimatedVisibility(soundHint && isVideoSlide && !screen.nightMode, Modifier.align(Alignment.TopCenter).padding(top = 40.dp),
+        AnimatedVisibility(soundHint && isVideoSlide && !screen.nightMode, Modifier.align(Alignment.TopCenter).padding(top = topPad),
             enter = fadeIn() + slideInVertically { -it }, exit = fadeOut() + slideOutVertically { -it }) {
             GlassSurface(backdrop, cornerRadius = 24.dp, tint = Color.Black.copy(alpha = 0.22f)) {
                 Row(Modifier.padding(horizontal = 20.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -282,7 +289,7 @@ private fun FrameScreen(g: AppGraph, onOpenSettings: () -> Unit) {
             enter = fadeIn() + scaleIn(initialScale = 0.85f), exit = fadeOut() + scaleOut(targetScale = 0.9f)) {
             AssistOverlay(backdrop, assist, onTap = { g.assist.cancel() })
         }
-        AnimatedVisibility(toast != null, Modifier.align(Alignment.TopCenter).padding(top = 40.dp),
+        AnimatedVisibility(toast != null, Modifier.align(Alignment.TopCenter).padding(top = topPad),
             enter = fadeIn() + slideInVertically { -it }, exit = fadeOut() + slideOutVertically { -it }) {
             toast?.let { ToastCard(backdrop, it, onDismiss = { g.ui.toast.value = null }) }
         }
@@ -292,6 +299,30 @@ private fun FrameScreen(g: AppGraph, onOpenSettings: () -> Unit) {
 
         // ---------------- soft "screen off" (no root)
         if (screen.softOff) Box(Modifier.fillMaxSize().background(Color.Black).pointerInput(Unit) { detectTapGestures { g.screen.wakeFromTouch() } })
+
+        // ---------------- privacy: always show when the camera is live (above everything)
+        AnimatedVisibility(cameraViewers > 0, Modifier.align(Alignment.TopCenter).padding(top = 10.dp),
+            enter = fadeIn() + slideInVertically { -it }, exit = fadeOut() + slideOutVertically { -it }) {
+            CameraLivePill(cameraViewers)
+        }
+    }
+}
+
+@Composable
+private fun CameraLivePill(viewers: Int) {
+    // Solid (not glass) so it's readable on any photo, video or the night clock.
+    Row(
+        Modifier.background(Color.Black.copy(alpha = 0.65f), RoundedCornerShape(50)).padding(horizontal = 14.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(Modifier.size(10.dp).background(Color(0xFFFF4D4D), CircleShape))
+        Spacer(Modifier.width(8.dp))
+        Icon(Icons.Rounded.Videocam, null, tint = Color.White, modifier = Modifier.size(18.dp))
+        Spacer(Modifier.width(6.dp))
+        Text(
+            if (viewers > 1) "Camera is being viewed · $viewers" else "Camera is being viewed",
+            style = GlassText.copy(fontSize = 15.sp, fontWeight = FontWeight.Medium),
+        )
     }
 }
 

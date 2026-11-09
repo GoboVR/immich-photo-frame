@@ -41,6 +41,10 @@ Home Assistant is optional: without it you still get the slideshow, clock and ph
   battery, light level and Wi-Fi; the current photo as an image entity
 - Show messages on the frame, and trigger automations when someone touches it
 
+**Live camera (optional, off by default)**
+- Watch the tablet's front camera in Home Assistant, in a browser, in Frigate, or in VLC and other viewer apps
+- Only runs while someone is watching, and the frame always shows "Camera is being viewed" while it's live
+
 ## What you need
 
 - **An Android tablet** with Android 12 or newer. Android 13+ gets the full glass effect;
@@ -170,6 +174,40 @@ settings → *Home Assistant* → *Load pipelines*.
 
 Entity names follow your frame's name: rename the frame to "Kitchen Frame" and you get
 `media_player.kitchen_frame`, and so on.
+
+## Live camera
+
+Turn it on in the frame's settings → **Live camera** (Android will ask for camera permission), or
+with the **Camera** switch in Home Assistant once you've allowed it on the frame.
+
+- **Home Assistant:** a camera entity (e.g. `camera.photo_frame_camera`) appears automatically.
+- **Browser:** open the *Viewer page* link shown in the frame's settings:
+  `http://<frame-ip>:8765/camera?key=<camera key>`
+- **VLC and most "IP camera" apps:** open the *MJPEG stream* link
+  (`http://<frame-ip>:8765/api/v1/camera.mjpeg?key=<camera key>`).
+- **Frigate:** add the stream to Frigate's built-in go2rtc. go2rtc can also convert it to H.264
+  and serve it as **RTSP** for anything that only speaks RTSP:
+
+  ```yaml
+  go2rtc:
+    streams:
+      photo_frame: http://<frame-ip>:8765/api/v1/camera.mjpeg?key=<camera key>
+      photo_frame_h264: ffmpeg:photo_frame#video=h264
+  cameras:
+    photo_frame:
+      ffmpeg:
+        inputs:
+          - path: rtsp://127.0.0.1:8554/photo_frame_h264
+            input_args: preset-rtsp-restream
+            roles: [detect, record]
+  ```
+  The RTSP stream is then also available at `rtsp://<frigate-host>:8554/photo_frame_h264`.
+
+**Privacy:** the camera is off until you turn it on, and it only runs while someone is actually
+watching (it stops 15 seconds after the last viewer leaves). While it's live, the frame shows a
+"Camera is being viewed" label on top of everything, and Android shows its green camera dot. The
+camera key can only watch the camera, not control the frame; tap **New key** in settings to cut
+off everyone using the old one. If others live where the frame is, tell them about the camera.
 
 ## Troubleshooting
 

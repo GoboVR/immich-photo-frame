@@ -15,6 +15,17 @@ data class WireState(
     val device: WireDevice,
     val widgets: WireWidgets,
     val ha: WireHa,
+    val camera: WireCamera? = null,
+)
+
+@Serializable data class WireCamera(
+    /** Turned on in the frame's settings (or from HA). */
+    val enabled: Boolean,
+    /** The tablet has a camera and the app may use it. */
+    val available: Boolean,
+    /** Someone is watching right now (camera running). */
+    val streaming: Boolean,
+    val viewers: Int,
 )
 
 @Serializable data class WireScreen(

@@ -126,3 +126,17 @@ Client may send `{"type":"ping"}` → `{"type":"pong"}`.
 - `media_play.url` starting with `/` is an HA-relative signed path; the frame prefixes the HA URL it is connected to.
 - `set_widgets.now_playing_entities`: other HA `media_player`s shown in the now-playing widget when playing.
 - `media_play` optional `media_type` (HA media type), `duration` (s, auto-stop; images default 30), `refresh` (s, re-fetch an image, for camera snapshots). Videos/images show full screen; `media.content` reports `audio|video|image`.
+
+## Live camera
+
+- `GET /api/v1/camera.jpg`: one fresh JPEG. `503` if the camera is off or unavailable.
+- `GET /api/v1/camera.mjpeg`: `multipart/x-mixed-replace; boundary=photoframe` stream of JPEGs.
+- `GET /camera?key=…`: HTML viewer page.
+- Auth: an HA bearer token (as usual), **or** the read-only camera key as `?key=` (or the
+  `X-Camera-Key` header). The camera key works only for these three endpoints.
+- The camera runs only while at least one client is connected or a snapshot is in progress,
+  and stops 15 s after the last one.
+- State: `"camera": {"enabled": bool, "available": bool, "streaming": bool, "viewers": int}`
+  (missing on app versions without camera support).
+- Command `set_camera` `{"enabled": bool}`: fails if the tablet has no camera or the permission
+  hasn't been granted (granted automatically with root).

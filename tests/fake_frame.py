@@ -99,6 +99,7 @@ def initial_state(name: str) -> dict:
             "entities": [],
         },
         "ha": {"connected": False, "url": None},
+        "camera": {"enabled": False, "available": True, "streaming": False, "viewers": 0},
     }
 
 
@@ -253,6 +254,8 @@ class FakeFrame:
                     s["assist"]["wake_word"] = params["wake_word"]
             case "set_widgets":
                 s["widgets"].update(params)
+            case "set_camera":
+                s["camera"]["enabled"] = bool(params["enabled"])
             case "provision_ha":
                 s["ha"] = {"connected": True, "url": params["url"]}
                 print(f"[provision_ha] url={params['url']} token={params['token'][:12]}...", flush=True)
@@ -326,6 +329,25 @@ class FakeFrame:
             return web.Response(status=404)
         return web.Response(body=tiny_jpeg_placeholder(self._asset_n), content_type="image/jpeg")
 
+    async def camera_jpg(self, request: web.Request) -> web.Response:
+        if not self.authorized(request):
+            return web.json_response({"error": "unauthorized"}, status=401)
+        if not self.state["camera"]["enabled"]:
+            return web.json_response({"error": "camera_off"}, status=503)
+        return web.Response(body=tiny_jpeg_placeholder(99), content_type="image/jpeg")
+
+    async def camera_mjpeg(self, request: web.Request) -> web.StreamResponse:
+        if not self.authorized(request):
+            return web.json_response({"error": "unauthorized"}, status=401)
+        if not self.state["camera"]["enabled"]:
+            return web.json_response({"error": "camera_off"}, status=503)
+        resp = web.StreamResponse(headers={"Content-Type": "multipart/x-mixed-replace; boundary=photoframe"})
+        await resp.prepare(request)
+        for i in range(3):
+            jpg = tiny_jpeg_placeholder(i)
+            await resp.write(b"--photoframe\r\nContent-Type: image/jpeg\r\nContent-Length: %d\r\n\r\n" % len(jpg) + jpg + b"\r\n")
+        return resp
+
     async def ws(self, request: web.Request) -> web.StreamResponse:
         if not self.authorized(request):
             return web.json_response({"error": "unauthorized"}, status=401)
@@ -361,6 +383,8 @@ class FakeFrame:
         app.router.add_post("/api/v1/command", self.command)
         app.router.add_get("/api/v1/current_photo.jpg", self.current_photo)
         app.router.add_get("/api/v1/ws", self.ws)
+        app.router.add_get("/api/v1/camera.jpg", self.camera_jpg)
+        app.router.add_get("/api/v1/camera.mjpeg", self.camera_mjpeg)
         return app
 
 

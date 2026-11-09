@@ -4,6 +4,11 @@ import android.graphics.Bitmap
 import android.util.Log
 import app.photoframe.AppGraph
 import io.ktor.http.ContentType
+import io.ktor.http.HttpHeaders
+import io.ktor.server.response.header
+import io.ktor.server.response.respondBytesWriter
+import io.ktor.utils.io.writeFully
+import java.security.MessageDigest
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.ApplicationCall
 import io.ktor.server.application.ApplicationCallPipeline
@@ -115,6 +120,51 @@ class FrameServer(private val g: AppGraph) {
                         call.respondBytes(bytes, ContentType.Image.JPEG)
                     }
 
+                    // ---------------- live camera (HA token or read-only camera key)
+                    get("/api/v1/camera.jpg") {
+                        if (!call.cameraAuthorized()) return@get call.unauthorized()
+                        if (!g.camera.enabled) return@get call.json("""{"error":"camera_off"}""", HttpStatusCode.ServiceUnavailable)
+                        val jpeg = runCatching { g.camera.snapshot() }.getOrElse {
+                            return@get call.json(buildJsonObject { put("error", it.message ?: "camera_error") }.toString(), HttpStatusCode.ServiceUnavailable)
+                        } ?: return@get call.json("""{"error":"no_frame"}""", HttpStatusCode.ServiceUnavailable)
+                        call.response.header(HttpHeaders.CacheControl, "no-store")
+                        call.respondBytes(jpeg, ContentType.Image.JPEG)
+                    }
+
+                    get("/api/v1/camera.mjpeg") {
+                        if (!call.cameraAuthorized()) return@get call.unauthorized()
+                        val lease = runCatching { g.camera.acquire() }.getOrElse {
+                            return@get call.json(buildJsonObject { put("error", it.message ?: "camera_error") }.toString(), HttpStatusCode.ServiceUnavailable)
+                        }
+                        try {
+                            call.response.header(HttpHeaders.CacheControl, "no-store")
+                            call.respondBytesWriter(ContentType.parse("multipart/x-mixed-replace; boundary=$MJPEG_BOUNDARY")) {
+                                var last = -1L
+                                // Ends when the camera is turned off or the viewer disconnects (write throws).
+                                while (g.camera.enabled) {
+                                    val f = g.camera.frame.value
+                                    if (f == null || f.seq == last) { delay(15); continue }
+                                    last = f.seq
+                                    writeFully("--$MJPEG_BOUNDARY\r\nContent-Type: image/jpeg\r\nContent-Length: ${f.jpeg.size}\r\n\r\n".toByteArray())
+                                    writeFully(f.jpeg)
+                                    writeFully("\r\n".toByteArray())
+                                    flush()
+                                }
+                            }
+                        } finally {
+                            lease.close()
+                        }
+                    }
+
+                    // Simple viewer page: http://<frame>:8765/camera?key=<camera key>
+                    get("/camera") {
+                        val key = call.request.queryParameters["key"].orEmpty()
+                        if (!call.cameraAuthorized() || !key.matches(Regex("[A-Za-z0-9]+"))) {
+                            return@get call.respondText(CAMERA_LOGIN_HTML, ContentType.Text.Html, HttpStatusCode.Unauthorized)
+                        }
+                        call.respondText(cameraPageHtml(g.config.value.frameName, key), ContentType.Text.Html)
+                    }
+
                     webSocket("/api/v1/ws") {
                         if (!call.authorized()) { close(CloseReason(CloseReason.Codes.VIOLATED_POLICY, "unauthorized")); return@webSocket }
                         val out = Channel<String>(Channel.BUFFERED)
@@ -190,6 +240,14 @@ class FrameServer(private val g: AppGraph) {
         bytes
     }
 
+    /** HA pairing tokens can do everything; the camera key can only watch the camera. */
+    private fun ApplicationCall.cameraAuthorized(): Boolean {
+        if (authorized()) return true
+        val key = request.queryParameters["key"] ?: request.headers["X-Camera-Key"] ?: return false
+        val expected = g.config.value.cameraKey
+        return MessageDigest.isEqual(key.toByteArray(), expected.toByteArray())
+    }
+
     private fun ApplicationCall.authorized(): Boolean {
         val header = request.headers["Authorization"]?.removePrefix("Bearer ")?.trim()
         val token = header ?: request.queryParameters["token"]
@@ -200,7 +258,24 @@ class FrameServer(private val g: AppGraph) {
     private suspend fun ApplicationCall.json(body: String, status: HttpStatusCode = HttpStatusCode.OK) =
         respondText(body, ContentType.Application.Json, status)
 
-    companion object { private const val TAG = "FrameServer" }
+    companion object {
+        private const val TAG = "FrameServer"
+        private const val MJPEG_BOUNDARY = "photoframe"
+
+        private const val CAMERA_LOGIN_HTML = """<!doctype html><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1">
+<title>Photo Frame camera</title><body style="font-family:system-ui;background:#111;color:#eee;display:grid;place-items:center;height:100vh;margin:0">
+<form method=get action=/camera style="display:grid;gap:12px;text-align:center"><h2 style=margin:0>Photo Frame camera</h2>
+<p style=margin:0;opacity:.7>Enter the camera key shown in the frame's settings.</p>
+<input name=key autocomplete=off placeholder="Camera key" style="padding:10px;font-size:16px;border-radius:8px;border:1px solid #444;background:#222;color:#eee">
+<button style="padding:10px;font-size:16px;border-radius:8px;border:0;background:#4a7dff;color:#fff">View</button></form></body>"""
+
+        fun cameraPageHtml(name: String, key: String): String {
+            val title = name.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+            return """<!doctype html><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1">
+<title>$title · camera</title><body style="margin:0;background:#000;height:100vh;display:grid;place-items:center">
+<img src="/api/v1/camera.mjpeg?key=$key" alt="Live camera" style="max-width:100vw;max-height:100vh"></body>"""
+        }
+    }
 }
 
 private fun JsonObject.s(k: String) = (this[k] as? JsonPrimitive)?.contentOrNull

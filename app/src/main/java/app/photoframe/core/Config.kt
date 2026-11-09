@@ -56,10 +56,22 @@ data class FrameConfig(
     val nightStart: String = "22:00",
     val nightEnd: String = "07:00",
     val autoNightMode: Boolean = false,
+    // Live camera (front camera as MJPEG). Off by default.
+    val cameraEnabled: Boolean = false,
+    /** Read-only key for camera viewers (browser, Frigate, VLC); can't control the frame. */
+    val cameraKey: String = randomKey(),
+    val cameraHd: Boolean = false,
+    val cameraFps: Int = 10,
     // Server
     val serverPort: Int = 8765,
     val serverTokens: Map<String, String> = emptyMap(), // token -> client name
 )
+
+fun randomKey(): String {
+    val chars = "abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+    val rnd = java.security.SecureRandom()
+    return (1..24).map { chars[rnd.nextInt(chars.length)] }.joinToString("")
+}
 
 class ConfigStore(context: Context) {
     private val prefs = context.getSharedPreferences("frame", Context.MODE_PRIVATE)

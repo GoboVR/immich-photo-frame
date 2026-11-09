@@ -87,6 +87,17 @@ class CommandHandler(private val g: AppGraph) {
                     nowPlayingEntities = p.strList("now_playing_entities") ?: c.nowPlayingEntities,
                 )
             }
+            "set_camera" -> {
+                val on = p.bool("enabled")
+                if (on) {
+                    if (!g.camera.available) throw CommandException("this tablet has no camera")
+                    if (!g.camera.hasPermission && g.rooted) {
+                        app.photoframe.core.RootShell.exec("pm grant ${g.app.packageName} android.permission.CAMERA")
+                    }
+                    if (!g.camera.hasPermission) throw CommandException("allow camera access on the frame first (Settings → Live camera)")
+                }
+                g.config.update { it.copy(cameraEnabled = on) }
+            }
             "provision_ha" -> {
                 val url = p.str("url").trimEnd('/'); val token = p.str("token")
                 val urls = p.strList("urls").orEmpty().map { it.trimEnd('/') }

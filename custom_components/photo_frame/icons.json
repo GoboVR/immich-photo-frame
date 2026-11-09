@@ -1,51 +1,103 @@
 {
   "entity": {
     "binary_sensor": {
-      "ha_connected": { "default": "mdi:home-assistant" }
+      "ha_connected": {
+        "default": "mdi:home-assistant"
+      }
     },
     "button": {
-      "next_photo": { "default": "mdi:skip-next" },
-      "previous_photo": { "default": "mdi:skip-previous" },
-      "assist_start": { "default": "mdi:microphone-message" },
-      "reload_sources": { "default": "mdi:refresh" }
+      "next_photo": {
+        "default": "mdi:skip-next"
+      },
+      "previous_photo": {
+        "default": "mdi:skip-previous"
+      },
+      "assist_start": {
+        "default": "mdi:microphone-message"
+      },
+      "reload_sources": {
+        "default": "mdi:refresh"
+      }
     },
     "image": {
-      "current_photo": { "default": "mdi:image" }
+      "current_photo": {
+        "default": "mdi:image"
+      }
     },
     "light": {
-      "screen": { "default": "mdi:tablet" }
+      "screen": {
+        "default": "mdi:tablet"
+      }
     },
     "number": {
-      "slideshow_interval": { "default": "mdi:timer-outline" }
+      "slideshow_interval": {
+        "default": "mdi:timer-outline"
+      }
     },
     "select": {
-      "source": { "default": "mdi:image-multiple" },
-      "album": { "default": "mdi:image-album" },
-      "person": { "default": "mdi:account-box" },
-      "wake_word_model": { "default": "mdi:account-voice" }
+      "source": {
+        "default": "mdi:image-multiple"
+      },
+      "album": {
+        "default": "mdi:image-album"
+      },
+      "person": {
+        "default": "mdi:account-box"
+      },
+      "wake_word_model": {
+        "default": "mdi:account-voice"
+      }
     },
     "sensor": {
-      "assist_state": { "default": "mdi:assistant" },
-      "photo_location": { "default": "mdi:map-marker" },
-      "photo_date": { "default": "mdi:calendar" },
-      "uptime": { "default": "mdi:clock-start" }
+      "assist_state": {
+        "default": "mdi:assistant"
+      },
+      "photo_location": {
+        "default": "mdi:map-marker"
+      },
+      "photo_date": {
+        "default": "mdi:calendar"
+      },
+      "uptime": {
+        "default": "mdi:clock-start"
+      }
     },
     "switch": {
       "slideshow": {
         "default": "mdi:play-box-multiple",
-        "state": { "off": "mdi:pause-box" }
+        "state": {
+          "off": "mdi:pause-box"
+        }
       },
-      "night_mode": { "default": "mdi:weather-night" },
-      "auto_brightness": { "default": "mdi:brightness-auto" },
+      "night_mode": {
+        "default": "mdi:weather-night"
+      },
+      "auto_brightness": {
+        "default": "mdi:brightness-auto"
+      },
       "wake_word": {
         "default": "mdi:microphone",
-        "state": { "off": "mdi:microphone-off" }
+        "state": {
+          "off": "mdi:microphone-off"
+        }
+      },
+      "camera": {
+        "default": "mdi:cctv",
+        "state": {
+          "off": "mdi:cctv-off"
+        }
       }
     }
   },
   "services": {
-    "show_message": { "service": "mdi:message-text" },
-    "show_asset": { "service": "mdi:image-search" },
-    "set_source": { "service": "mdi:image-multiple" }
+    "show_message": {
+      "service": "mdi:message-text"
+    },
+    "show_asset": {
+      "service": "mdi:image-search"
+    },
+    "set_source": {
+      "service": "mdi:image-multiple"
+    }
   }
 }

@@ -364,3 +364,36 @@ async def test_video_image_and_camera(hass: HomeAssistant, fake_frame) -> None:
     assert p["url"].startswith("/api/camera_proxy/camera.front_door"), p["url"]
     assert "authSig=" in p["url"]
     assert p["mime"] == "image/jpeg" and p["refresh"] == 1
+
+
+async def test_camera(hass: HomeAssistant, fake_frame, hass_client) -> None:
+    """Camera entity + switch: turn on, snapshot, MJPEG via HA's proxy, turn off."""
+    from homeassistant.components import camera
+
+    frame, port = fake_frame
+    await _setup(hass, port)
+    cam_id, switch_id = "camera.fake_frame_camera", "switch.fake_frame_camera"
+    assert hass.states.get(cam_id) is not None, [s.entity_id for s in hass.states.async_all()]
+    assert hass.states.get(switch_id).state == "off"
+
+    # Turning the camera on from HA reaches the frame.
+    await hass.services.async_call("camera", "turn_on", {"entity_id": cam_id}, blocking=True)
+    assert frame.commands[-1] == ("set_camera", {"enabled": True})
+    await wait_for(hass, lambda: hass.states.get(switch_id).state == "on")
+
+    image = await camera.async_get_image(hass, cam_id)
+    assert image.content_type == "image/jpeg" and len(image.content) > 0
+
+    client = await hass_client()
+    resp = await client.get(f"/api/camera_proxy_stream/{cam_id}")
+    assert resp.status == 200, resp.status
+    assert resp.headers["Content-Type"].startswith("multipart/x-mixed-replace")
+    body = await resp.read()
+    assert body.count(b"--photoframe") >= 1
+
+    # Switch off: snapshots stop.
+    await hass.services.async_call("switch", "turn_off", {"entity_id": switch_id}, blocking=True)
+    assert frame.commands[-1] == ("set_camera", {"enabled": False})
+    await wait_for(hass, lambda: hass.states.get(switch_id).state == "off")
+    resp = await client.get(f"/api/camera_proxy/{cam_id}")
+    assert resp.status != 200

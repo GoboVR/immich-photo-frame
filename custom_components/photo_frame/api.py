@@ -238,6 +238,31 @@ class FrameClient:
         except (aiohttp.ClientError, TimeoutError, OSError) as err:
             raise FrameConnectionError(f"Error fetching {url}: {err}") from err
 
+    @property
+    def camera_mjpeg_url(self) -> str:
+        """Live MJPEG stream of the frame's camera (needs auth_headers())."""
+        return f"{self.base_url}{API_PREFIX}/camera.mjpeg"
+
+    def auth_headers(self) -> dict[str, str]:
+        """Headers that authenticate us to the frame."""
+        return self._headers()
+
+    async def fetch_camera_snapshot(self) -> bytes | None:
+        """GET /camera.jpg. Returns None if the camera is off or has no frame."""
+        url = f"{self.base_url}{API_PREFIX}/camera.jpg"
+        try:
+            async with self._session.get(
+                url, headers=self._headers(), timeout=aiohttp.ClientTimeout(total=12)
+            ) as resp:
+                if resp.status in (404, 503):
+                    return None
+                if resp.status == 401:
+                    raise FrameAuthError("Unauthorized: camera.jpg")
+                resp.raise_for_status()
+                return await resp.read()
+        except (aiohttp.ClientError, TimeoutError, OSError) as err:
+            raise FrameConnectionError(f"Error fetching {url}: {err}") from err
+
     # ---------------------------------------------------------------- command
 
     async def command(self, command: str, params: dict[str, Any] | None = None) -> Any:

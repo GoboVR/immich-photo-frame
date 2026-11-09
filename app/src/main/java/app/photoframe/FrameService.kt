@@ -17,6 +17,8 @@ import android.util.Log
 /** Keeps the server, wake word, HA connection and media alive while the activity isn't visible. */
 class FrameService : Service() {
     private var wakeLock: PowerManager.WakeLock? = null
+    /** Type we're currently foreground with (0 = not foreground yet). */
+    private var foregroundType = 0
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -34,19 +36,29 @@ class FrameService : Service() {
         // Android 15 blocks some types when started from boot. Try the richest type
         // first and fall back; MainActivity re-calls this on resume to upgrade.
         val media = ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK
+        val mic = if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED)
+            ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE else 0
+        // Camera access only while the live camera is turned on (and allowed).
+        val cam = if (FrameApp.graph.config.value.cameraEnabled &&
+            checkSelfPermission(Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED)
+            ServiceInfo.FOREGROUND_SERVICE_TYPE_CAMERA else 0
         val types = buildList {
-            if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
-                add(media or ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE)
-            }
+            if (cam != 0) add(media or mic or cam)
+            if (mic != 0) add(media or mic)
             add(media)
             add(ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE)
         }
         val started = types.any { type ->
-            try { startForeground(1, n, type); true } catch (e: Exception) {
+            if (type == foregroundType) return@any true
+            try { startForeground(1, n, type); foregroundType = type; true } catch (e: Exception) {
                 Log.w("FrameService", "startForeground(type=$type) refused: ${e.message}"); false
             }
         }
-        if (!started) {
+        if (!started && foregroundType != 0) {
+            // Already running in the foreground; a type change was refused (e.g. we're in the
+            // background). Keep what we have; the activity re-promotes us when visible.
+            Log.w("FrameService", "keeping current foreground type $foregroundType")
+        } else if (!started) {
             // Every type refused: stop instead of letting Android kill the app for
             // not calling startForeground in time. The activity restarts us.
             Log.w("FrameService", "foreground not allowed right now; waiting for the frame to be visible")

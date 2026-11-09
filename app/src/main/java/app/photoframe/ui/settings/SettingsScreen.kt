@@ -3,6 +3,10 @@ package app.photoframe.ui.settings
 import android.content.Intent
 import android.provider.Settings
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.text.selection.SelectionContainer
+import app.photoframe.core.randomKey
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -230,6 +234,43 @@ fun SettingsScreen(g: AppGraph, onClose: () -> Unit) {
                     if (cfg.autoNightMode) Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         Box(Modifier.weight(1f)) { ConfigField("From (HH:mm)", cfg.nightStart) { v -> upd { it.copy(nightStart = v.trim()) } } }
                         Box(Modifier.weight(1f)) { ConfigField("Until (HH:mm)", cfg.nightEnd) { v -> upd { it.copy(nightEnd = v.trim()) } } }
+                    }
+                }
+
+                // ------------------------------------------------------ live camera
+                Section("Live camera") {
+                    val camPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+                        if (granted) upd { it.copy(cameraEnabled = true) }
+                    }
+                    if (!g.camera.available) {
+                        Text("This tablet has no camera.", color = Color.White.copy(alpha = 0.7f))
+                    } else {
+                        SwitchRow("Live camera (front camera)", cfg.cameraEnabled) { on ->
+                            if (on && !g.camera.hasPermission) camPermission.launch(android.Manifest.permission.CAMERA)
+                            else upd { it.copy(cameraEnabled = on) }
+                        }
+                        Text(
+                            "Only runs while someone is watching, and the frame always shows \"Camera is being viewed\" while it's live. " +
+                                "Home Assistant gets a camera entity automatically. For a browser, Frigate (go2rtc) or VLC, use the links below.",
+                            color = Color.White.copy(alpha = 0.7f), style = MaterialTheme.typography.bodyMedium,
+                        )
+                        if (cfg.cameraEnabled) {
+                            val base = "http://${localIp() ?: "<frame-ip>"}:${cfg.serverPort}"
+                            SelectionContainer {
+                                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    Text("Viewer page:  $base/camera?key=${cfg.cameraKey}")
+                                    Text("MJPEG stream (Frigate, VLC):  $base/api/v1/camera.mjpeg?key=${cfg.cameraKey}")
+                                    Text("Snapshot:  $base/api/v1/camera.jpg?key=${cfg.cameraKey}")
+                                }
+                            }
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text("The key only allows watching the camera, not controlling the frame.",
+                                    modifier = Modifier.weight(1f), color = Color.White.copy(alpha = 0.6f), style = MaterialTheme.typography.bodySmall)
+                                OutlinedButton(onClick = { upd { it.copy(cameraKey = randomKey()) } }) { Text("New key") }
+                            }
+                            SwitchRow("HD (1280×720, more bandwidth)", cfg.cameraHd) { v -> upd { it.copy(cameraHd = v) } }
+                            SliderRow("Frames per second", cfg.cameraFps.toFloat(), 2f..15f, { "${it.toInt()}" }) { v -> upd { it.copy(cameraFps = v.toInt()) } }
+                        }
                     }
                 }
 

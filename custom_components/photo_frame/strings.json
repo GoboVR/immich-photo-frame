@@ -172,6 +172,14 @@
       },
       "wake_word": {
         "name": "Wake word detection"
+      },
+      "camera": {
+        "name": "Camera"
+      }
+    },
+    "camera": {
+      "camera": {
+        "name": "Camera"
       }
     }
   },

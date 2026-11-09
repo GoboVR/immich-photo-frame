@@ -10,6 +10,7 @@ import app.photoframe.core.ConfigStore
 import app.photoframe.core.RootShell
 import app.photoframe.core.SlideshowController
 import app.photoframe.core.UiBus
+import app.photoframe.device.CameraStreamer
 import app.photoframe.device.DeviceMonitor
 import app.photoframe.device.ScreenController
 import app.photoframe.ha.HaClient
@@ -20,6 +21,7 @@ import app.photoframe.server.Discovery
 import app.photoframe.server.FrameServer
 import app.photoframe.server.WireAlbum
 import app.photoframe.server.WireAssist
+import app.photoframe.server.WireCamera
 import app.photoframe.server.WireCurrent
 import app.photoframe.server.WireDevice
 import app.photoframe.server.WireHa
@@ -91,6 +93,7 @@ class AppGraph(val app: Application) {
     val assist = AssistController(app, scope, config, ha, media, mic)
     val device = DeviceMonitor(app, scope)
     val screen = ScreenController(app, scope, config, device)
+    val camera = CameraStreamer(app, scope, config)
     val commands = CommandHandler(this)
     val server = FrameServer(this)
     val discovery = Discovery(app)
@@ -107,6 +110,10 @@ class AppGraph(val app: Application) {
         media.start()
         slideshow.start()
         assist.startWakeWordWatcher()
+        // Camera turned on/off: re-promote the service so it gains/loses camera access.
+        scope.launch {
+            config.config.map { it.cameraEnabled }.distinctUntilChanged().collect { FrameService.start(app) }
+        }
         // Reconnect to HA when its URL/token change.
         scope.launch {
             config.config.map { Triple(it.haUrl, it.haUrls, it.haToken) }.distinctUntilChanged().collect { ha.restart() }
@@ -172,6 +179,10 @@ class AppGraph(val app: Application) {
             widgets = WireWidgets(c.showClock, c.showWeather, c.showPhotoInfo, c.showControls, c.weatherEntity, c.controlEntities,
                 c.showNowPlaying, c.nowPlayingEntities),
             ha = WireHa(ha.status.value == HaClient.Status.CONNECTED, ha.baseUrl.ifBlank { null }),
+            camera = WireCamera(
+                enabled = c.cameraEnabled, available = camera.available && camera.hasPermission,
+                streaming = camera.viewers.value > 0, viewers = camera.viewers.value,
+            ),
         )
     }
 
@@ -182,6 +193,7 @@ class AppGraph(val app: Application) {
             config.config, screen.state, slideshow.current, slideshow.playing, slideshow.albums, slideshow.people,
             media.state.map { it.copy(position = null, positionUpdatedAt = it.positionUpdatedAt) },
             assist.ui.map { it.phase }, device.state.map { it.copy(uptime = it.uptime / 300) }, ha.status,
+            camera.viewers,
         )
         merge(*sources.toTypedArray()).sample(250).map { snapshot() }.distinctUntilChanged()
             .stateIn(scope, SharingStarted.Eagerly, snapshot())
