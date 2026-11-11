@@ -384,6 +384,11 @@ async def test_camera(hass: HomeAssistant, fake_frame, hass_client) -> None:
     image = await camera.async_get_image(hass, cam_id)
     assert image.content_type == "image/jpeg" and len(image.content) > 0
 
+    # Live video: HA gets an RTSP URL with the pairing token as the password.
+    entry = hass.config_entries.async_entries("photo_frame")[0]
+    src = await camera.async_get_stream_source(hass, cam_id)
+    assert src == f"rtsp://ha:{entry.data['token']}@127.0.0.1:8554/camera", src
+
     client = await hass_client()
     resp = await client.get(f"/api/camera_proxy_stream/{cam_id}")
     assert resp.status == 200, resp.status

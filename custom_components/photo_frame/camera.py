@@ -38,9 +38,12 @@ async def async_setup_entry(
 
 
 class PhotoFrameCamera(PhotoFrameEntity, Camera):
-    """The frame's camera as MJPEG. The frame only runs it while someone watches."""
+    """The frame's camera: H.264 over RTSP (live video), with MJPEG/snapshot fallbacks.
 
-    _attr_supported_features = CameraEntityFeature.ON_OFF
+    The frame only runs the camera while someone is watching.
+    """
+
+    _attr_supported_features = CameraEntityFeature.ON_OFF | CameraEntityFeature.STREAM
 
     def __init__(self, entry: PhotoFrameConfigEntry, description: CameraEntityDescription) -> None:
         """Initialize."""
@@ -61,6 +64,14 @@ class PhotoFrameCamera(PhotoFrameEntity, Camera):
     def is_streaming(self) -> bool:
         """Someone is watching right now."""
         return bool(self.frame_value("camera", "streaming"))
+
+    async def stream_source(self) -> str | None:
+        """RTSP stream for HA's stream/WebRTC players (token sent as the Basic-auth password)."""
+        port = self.frame_value("camera", "rtsp_port")
+        if not self.is_on or not port:
+            return None
+        client = self._frame_client
+        return f"rtsp://ha:{client.token}@{client.host}:{port}/camera"
 
     async def async_camera_image(
         self, width: int | None = None, height: int | None = None

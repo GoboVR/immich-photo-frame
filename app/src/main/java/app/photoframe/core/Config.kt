@@ -61,7 +61,9 @@ data class FrameConfig(
     /** Read-only key for camera viewers (browser, Frigate, VLC); can't control the frame. */
     val cameraKey: String = randomKey(),
     val cameraHd: Boolean = false,
+    /** Frames per second for the MJPEG (browser) stream; RTSP video runs at the camera's full rate. */
     val cameraFps: Int = 10,
+    val rtspPort: Int = 8554,
     // Server
     val serverPort: Int = 8765,
     val serverTokens: Map<String, String> = emptyMap(), // token -> client name

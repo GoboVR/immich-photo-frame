@@ -251,15 +251,16 @@ fun SettingsScreen(g: AppGraph, onClose: () -> Unit) {
                         }
                         Text(
                             "Only runs while someone is watching, and the frame always shows \"Camera is being viewed\" while it's live. " +
-                                "Home Assistant gets a camera entity automatically. For a browser, Frigate (go2rtc) or VLC, use the links below.",
+                                "Home Assistant gets a live camera entity automatically. Use the RTSP link for smooth video in VLC or Frigate, and the viewer page in a browser.",
                             color = Color.White.copy(alpha = 0.7f), style = MaterialTheme.typography.bodyMedium,
                         )
                         if (cfg.cameraEnabled) {
                             val base = "http://${localIp() ?: "<frame-ip>"}:${cfg.serverPort}"
                             SelectionContainer {
                                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                    Text("Viewer page:  $base/camera?key=${cfg.cameraKey}")
-                                    Text("MJPEG stream (Frigate, VLC):  $base/api/v1/camera.mjpeg?key=${cfg.cameraKey}")
+                                    Text("Live video (VLC, Frigate):  rtsp://${localIp() ?: "<frame-ip>"}:${cfg.rtspPort}/camera?key=${cfg.cameraKey}")
+                                    Text("Viewer page (browser):  $base/camera?key=${cfg.cameraKey}")
+                                    Text("MJPEG stream:  $base/api/v1/camera.mjpeg?key=${cfg.cameraKey}")
                                     Text("Snapshot:  $base/api/v1/camera.jpg?key=${cfg.cameraKey}")
                                 }
                             }
@@ -269,7 +270,7 @@ fun SettingsScreen(g: AppGraph, onClose: () -> Unit) {
                                 OutlinedButton(onClick = { upd { it.copy(cameraKey = randomKey()) } }) { Text("New key") }
                             }
                             SwitchRow("HD (1280×720, more bandwidth)", cfg.cameraHd) { v -> upd { it.copy(cameraHd = v) } }
-                            SliderRow("Frames per second", cfg.cameraFps.toFloat(), 2f..15f, { "${it.toInt()}" }) { v -> upd { it.copy(cameraFps = v.toInt()) } }
+                            SliderRow("Browser/MJPEG frames per second", cfg.cameraFps.toFloat(), 2f..20f, { "${it.toInt()}" }) { v -> upd { it.copy(cameraFps = v.toInt()) } }
                         }
                     }
                 }

@@ -19,6 +19,7 @@ import app.photoframe.media.MediaEngine
 import app.photoframe.server.CommandHandler
 import app.photoframe.server.Discovery
 import app.photoframe.server.FrameServer
+import app.photoframe.server.RtspServer
 import app.photoframe.server.WireAlbum
 import app.photoframe.server.WireAssist
 import app.photoframe.server.WireCamera
@@ -96,6 +97,7 @@ class AppGraph(val app: Application) {
     val camera = CameraStreamer(app, scope, config)
     val commands = CommandHandler(this)
     val server = FrameServer(this)
+    val rtsp = RtspServer(this)
     val discovery = Discovery(app)
 
     val rooted: Boolean get() = RootShell.isRooted
@@ -110,6 +112,10 @@ class AppGraph(val app: Application) {
         media.start()
         slideshow.start()
         assist.startWakeWordWatcher()
+        // RTSP server for the live camera (H.264).
+        scope.launch {
+            config.config.map { it.rtspPort }.distinctUntilChanged().collect { rtsp.restart(it) }
+        }
         // Camera turned on/off: re-promote the service so it gains/loses camera access.
         scope.launch {
             config.config.map { it.cameraEnabled }.distinctUntilChanged().collect { FrameService.start(app) }
@@ -182,6 +188,7 @@ class AppGraph(val app: Application) {
             camera = WireCamera(
                 enabled = c.cameraEnabled, available = camera.available && camera.hasPermission,
                 streaming = camera.viewers.value > 0, viewers = camera.viewers.value,
+                rtspPort = c.rtspPort,
             ),
         )
     }

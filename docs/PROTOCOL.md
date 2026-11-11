@@ -129,6 +129,10 @@ Client may send `{"type":"ping"}` → `{"type":"pong"}`.
 
 ## Live camera
 
+- `rtsp://<frame>:<rtsp_port>/camera`: live H.264 (RTP, RFC 6184, packetization-mode 1) over
+  UDP or TCP-interleaved; up to 30 fps from the hardware encoder, SPS/PPS before every keyframe.
+  Auth: `?key=<camera key>`, `?token=<HA token>`, or either as the Basic-auth password. The
+  integration uses `rtsp://ha:<token>@<frame>:<rtsp_port>/camera` as the HA `stream_source`.
 - `GET /api/v1/camera.jpg`: one fresh JPEG. `503` if the camera is off or unavailable.
 - `GET /api/v1/camera.mjpeg`: `multipart/x-mixed-replace; boundary=photoframe` stream of JPEGs.
 - `GET /camera?key=…`: HTML viewer page.
@@ -136,7 +140,7 @@ Client may send `{"type":"ping"}` → `{"type":"pong"}`.
   `X-Camera-Key` header). The camera key works only for these three endpoints.
 - The camera runs only while at least one client is connected or a snapshot is in progress,
   and stops 15 s after the last one.
-- State: `"camera": {"enabled": bool, "available": bool, "streaming": bool, "viewers": int}`
+- State: `"camera": {"enabled": bool, "available": bool, "streaming": bool, "viewers": int, "rtsp_port": int}`
   (missing on app versions without camera support).
 - Command `set_camera` `{"enabled": bool}`: fails if the tablet has no camera or the permission
   hasn't been granted (granted automatically with root).

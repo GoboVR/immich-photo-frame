@@ -180,28 +180,29 @@ Entity names follow your frame's name: rename the frame to "Kitchen Frame" and y
 Turn it on in the frame's settings → **Live camera** (Android will ask for camera permission), or
 with the **Camera** switch in Home Assistant once you've allowed it on the frame.
 
-- **Home Assistant:** a camera entity (e.g. `camera.photo_frame_camera`) appears automatically.
-- **Browser:** open the *Viewer page* link shown in the frame's settings:
-  `http://<frame-ip>:8765/camera?key=<camera key>`
-- **VLC and most "IP camera" apps:** open the *MJPEG stream* link
-  (`http://<frame-ip>:8765/api/v1/camera.mjpeg?key=<camera key>`).
-- **Frigate:** add the stream to Frigate's built-in go2rtc. go2rtc can also convert it to H.264
-  and serve it as **RTSP** for anything that only speaks RTSP:
+The camera is streamed as **real H.264 video over RTSP** (up to 30 fps, encoded by the tablet's
+hardware), plus an MJPEG version for web browsers. The links are shown in the frame's settings.
+
+- **Home Assistant:** a camera entity (e.g. `camera.photo_frame_camera`) appears automatically
+  and plays the live video stream in dashboards.
+- **VLC and other RTSP viewers:** open `rtsp://<frame-ip>:8554/camera?key=<camera key>`
+  (VLC: *Media → Open Network Stream*).
+- **Frigate:** use the same RTSP URL directly:
 
   ```yaml
-  go2rtc:
-    streams:
-      photo_frame: http://<frame-ip>:8765/api/v1/camera.mjpeg?key=<camera key>
-      photo_frame_h264: ffmpeg:photo_frame#video=h264
   cameras:
     photo_frame:
       ffmpeg:
         inputs:
-          - path: rtsp://127.0.0.1:8554/photo_frame_h264
-            input_args: preset-rtsp-restream
+          - path: rtsp://<frame-ip>:8554/camera?key=<camera key>
+            input_args: preset-rtsp-generic
             roles: [detect, record]
   ```
-  The RTSP stream is then also available at `rtsp://<frigate-host>:8554/photo_frame_h264`.
+- **Browser:** open the *Viewer page* link:
+  `http://<frame-ip>:8765/camera?key=<camera key>` (MJPEG; frame rate set in settings).
+
+RTSP works over both UDP and TCP. The camera key can also be given as the password
+(`rtsp://any:<camera key>@<frame-ip>:8554/camera`) for apps that ask for a username and password.
 
 **Privacy:** the camera is off until you turn it on, and it only runs while someone is actually
 watching (it stops 15 seconds after the last viewer leaves). While it's live, the frame shows a

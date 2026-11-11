@@ -99,7 +99,7 @@ def initial_state(name: str) -> dict:
             "entities": [],
         },
         "ha": {"connected": False, "url": None},
-        "camera": {"enabled": False, "available": True, "streaming": False, "viewers": 0},
+        "camera": {"enabled": False, "available": True, "streaming": False, "viewers": 0, "rtsp_port": 8554},
     }
 
 

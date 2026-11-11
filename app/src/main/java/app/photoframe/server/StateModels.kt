@@ -26,6 +26,8 @@ data class WireState(
     /** Someone is watching right now (camera running). */
     val streaming: Boolean,
     val viewers: Int,
+    /** H.264 RTSP stream: rtsp://<frame>:<rtsp_port>/camera?token=<HA token> */
+    @SerialName("rtsp_port") val rtspPort: Int? = null,
 )
 
 @Serializable data class WireScreen(
